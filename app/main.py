@@ -1,10 +1,14 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from app.youtube import search_videos
 from app.database import SessionLocal, init_db, Video
 from app.insight import generate_insight
+from app.melon import get_melon_chart
 
-app = FastAPI()
+app = FastAPI(title="FandomLens", description="K-POP Fandom Intelligence API")
+templates = Jinja2Templates(directory="app/templates")
 
 @app.on_event("startup")
 def startup():
@@ -17,9 +21,9 @@ def get_db():
     finally:
         db.close()
 
-@app.get("/")
-def root():
-    return {"message": "SM Fan Insight API"}
+@app.get("/", response_class=HTMLResponse)
+def dashboard(request: Request):
+    return templates.TemplateResponse(request=request, name="index.html")
 
 @app.get("/videos")
 def get_videos(query: str = "aespa", max_results: int = 10):
@@ -41,9 +45,13 @@ def collect_videos(query: str = "aespa", max_results: int = 10, db: Session = De
 
 @app.get("/videos/insight")
 def get_insight(query: str = "aespa", max_results: int = 10, db: Session = Depends(get_db)):
-    from app.database import Video
-    videos = db.query(Video).limit(max_results).all()
+    videos = db.query(Video).filter(Video.title.ilike(f"%{query}%")).limit(max_results).all()
     if not videos:
         return {"insight": "데이터가 없습니다. /videos/collect 먼저 실행해주세요."}
     insight = generate_insight(videos)
     return {"insight": insight}
+
+@app.get("/chart/melon")
+def melon_chart(limit: int = 10):
+    chart = get_melon_chart(limit)
+    return {"chart": chart}

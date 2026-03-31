@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FandomLens</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@300;400;700&display=swap');
+
+    :root {
+      --bg: #0a0a0f;
+      --card: #12121a;
+      --border: #2a2a3a;
+      --accent: #c8a96e;
+      --accent2: #7c5cbf;
+      --text: #e8e8f0;
+      --muted: #6b6b80;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Noto Sans KR', sans-serif;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 2rem 3rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    header h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.5rem;
+      letter-spacing: 4px;
+      color: var(--accent);
+    }
+
+    header span {
+      font-size: 0.8rem;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 3rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .card h2 {
+      font-size: 0.75rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.6rem 1rem;
+      border-radius: 6px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    input:focus { border-color: var(--accent); }
+
+    button {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 6px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: opacity 0.2s;
+    }
+
+    button:hover { opacity: 0.8; }
+
+    button.secondary {
+      background: transparent;
+      border: 1px solid var(--accent2);
+      color: var(--accent2);
+    }
+
+    .chart-list { list-style: none; }
+
+    .chart-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .chart-item:last-child { border-bottom: none; }
+
+    .rank {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.4rem;
+      color: var(--muted);
+      width: 2rem;
+      text-align: center;
+    }
+
+    .rank.top3 { color: var(--accent); }
+
+    .song-info { flex: 1; }
+    .song-title { font-weight: 700; font-size: 0.95rem; }
+    .song-artist { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+
+    .video-list { list-style: none; }
+
+    .video-item {
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .video-item:last-child { border-bottom: none; }
+
+    .video-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .video-meta {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .insight-box {
+      grid-column: 1 / -1;
+    }
+
+    .insight-content {
+      font-size: 0.9rem;
+      line-height: 1.8;
+      color: var(--text);
+      white-space: pre-wrap;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .loading {
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--accent2);
+      color: white;
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-left: 0.5rem;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>FandomLens</h1>
+    <span>K-POP Fandom Intelligence</span>
+  </header>
+
+  <div class="container">
+    <!-- 멜론 차트 -->
+    <div class="card">
+      <h2>🎵 Melon Chart</h2>
+      <ul class="chart-list" id="chartList">
+        <li class="loading">로딩 중...</li>
+      </ul>
+    </div>
+
+    <!-- YouTube 수집 -->
+    <div class="card">
+      <h2>📺 YouTube 데이터 수집</h2>
+      <div class="search-box">
+        <input type="text" id="queryInput" placeholder="아티스트 검색 (예: aespa)" value="aespa">
+        <button onclick="collectVideos()">수집</button>
+      </div>
+      <ul class="video-list" id="videoList">
+        <li class="loading">아티스트를 검색하세요</li>
+      </ul>
+    </div>
+
+    <!-- AI 인사이트 -->
+    <div class="card insight-box">
+      <h2>🤖 AI 팬덤 인사이트 <span class="tag">Claude AI</span></h2>
+      <div style="margin-bottom: 1rem;">
+        <button onclick="getInsight()">인사이트 생성</button>
+      </div>
+      <div class="insight-content" id="insightBox">인사이트 생성 버튼을 눌러주세요.</div>
+    </div>
+  </div>
+
+  <script>
+    async function loadChart() {
+      const res = await fetch('/chart/melon');
+      const data = await res.json();
+      const list = document.getElementById('chartList');
+      list.innerHTML = data.chart.map(item => `
+        <li class="chart-item">
+          <span class="rank ${item.rank <= 3 ? 'top3' : ''}">${item.rank}</span>
+          <div class="song-info">
+            <div class="song-title">${item.title}</div>
+            <div class="song-artist">${item.artist}</div>
+          </div>
+        </li>
+      `).join('');
+    }
+
+    async function collectVideos() {
+      const query = document.getElementById('queryInput').value;
+      const list = document.getElementById('videoList');
+      list.innerHTML = '<li class="loading">수집 중...</li>';
+
+      const res = await fetch(`/videos/collect?query=${encodeURIComponent(query)}&max_results=5`, { method: 'POST' });
+      const collectData = await res.json();
+
+      const res2 = await fetch(`/videos?query=${encodeURIComponent(query)}&max_results=5`);
+      const data = await res2.json();
+
+      list.innerHTML = data.videos.map(v => `
+        <li class="video-item">
+          <div class="video-title">${v.title}</div>
+          <div class="video-meta">${v.channel} · ${v.published_at?.slice(0, 10)}</div>
+        </li>
+      `).join('');
+    }
+
+    async function getInsight() {
+        const query = document.getElementById('queryInput').value;
+        const box = document.getElementById('insightBox');
+        box.textContent = '분석 중... (10~20초 소요)';
+        const res = await fetch(`/videos/insight?query=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        box.textContent = data.insight;
+    }
+
+    loadChart();
+  </script>
+</body>
+</html>
