@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from app.youtube import search_videos
 from app.database import SessionLocal, init_db, Video
+from app.insight import generate_insight
 
 app = FastAPI()
 
@@ -37,3 +38,12 @@ def collect_videos(query: str = "aespa", max_results: int = 10, db: Session = De
             saved += 1
     db.commit()
     return {"saved": saved, "total": len(videos)}
+
+@app.get("/videos/insight")
+def get_insight(query: str = "aespa", max_results: int = 10, db: Session = Depends(get_db)):
+    from app.database import Video
+    videos = db.query(Video).limit(max_results).all()
+    if not videos:
+        return {"insight": "데이터가 없습니다. /videos/collect 먼저 실행해주세요."}
+    insight = generate_insight(videos)
+    return {"insight": insight}
