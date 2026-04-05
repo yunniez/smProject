@@ -1,7 +1,7 @@
 from playwright.sync_api import sync_playwright
 from app.database import SessionLocal, Comment
 
-def crawl_youtube_comments(video_id: str, max_comments: int = 100) -> list[dict]:
+def crawl_youtube_comments(video_id: str, max_comments: int = 50) -> list[dict]:
     url = f"https://www.youtube.com/watch?v={video_id}"
     comments = []
 
@@ -15,6 +15,16 @@ def crawl_youtube_comments(video_id: str, max_comments: int = 100) -> list[dict]
         page.wait_for_timeout(3000)
         page.evaluate("window.scrollBy(0, 600)")
         page.wait_for_timeout(3000)
+
+        sort_button = page.query_selector("tp-yt-paper-dropdown-menu")
+        if sort_button:
+            sort_button.click()
+            page.wait_for_timeout(1000)
+            # 인기순 선택 (첫 번째 옵션)
+            options = page.query_selector_all("tp-yt-paper-item")
+            if options:
+                options[0].click()
+                page.wait_for_timeout(2000)
 
         prev_count = 0
         while len(comments) < max_comments:

@@ -85,7 +85,7 @@ def get_comments(video_id: str):
         db.close()
 
 @app.post("/pipeline/run")
-def run_pipeline(artist: str, max_videos: int = 5, max_comments: int = 100, db: Session = Depends(get_db)):
+def run_pipeline(artist: str, max_videos: int = 5, max_comments: int = 50, db: Session = Depends(get_db)):
     # 1. 영상 수집 및 DB 저장
     videos = search_videos(artist, max_videos)
     for v in videos:
@@ -107,6 +107,10 @@ def run_pipeline(artist: str, max_videos: int = 5, max_comments: int = 100, db: 
         saved_comments = db.query(Comment).filter_by(video_id=video_id).all()
         if saved_comments:
             sentiment = analyze_sentiment(video_id, saved_comments)
+            # sentiment DB 저장 추가
+            for comment in saved_comments:
+                comment.sentiment = sentiment.get("dominant_emotion")
+            db.commit()
         else:
             sentiment = None
 
