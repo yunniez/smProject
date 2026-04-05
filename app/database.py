@@ -1,6 +1,6 @@
-from sqlalchemy import create_engine, Column, String, Integer
+from sqlalchemy import create_engine, Column, String, Integer, Text, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, relationship
 from dotenv import load_dotenv
 import os
 
@@ -21,6 +21,18 @@ class Video(Base):
     channel = Column(String)
     published_at = Column(String)
     description = Column(String)
+    comments = relationship("Comment", back_populates="video")
+
+class Comment(Base):
+    __tablename__ = "comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    video_id = Column(String, ForeignKey("videos.video_id"), index=True)
+    author = Column(String)
+    text = Column(Text)
+    likes = Column(Integer, default=0)
+    published_at = Column(String)
+    video = relationship("Video", back_populates="comments")
 
 def init_db():
     Base.metadata.create_all(bind=engine)

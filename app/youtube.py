@@ -30,3 +30,25 @@ def search_videos(query: str, max_results: int = 10):
             "description": item["snippet"]["description"]
         })
     return videos
+
+def get_video_comments(video_id: str, max_results: int = 20):
+    youtube = get_youtube_client()
+    response = youtube.commentThreads().list(
+        part="snippet",
+        videoId=video_id,
+        maxResults=max_results,
+        order="relevance"
+    ).execute()
+
+    comments = []
+    for item in response["items"]:
+        comment = item["snippet"]["topLevelComment"]["snippet"]
+        comments.append({
+            "video_id": video_id,
+            "author": comment["authorDisplayName"],
+            "text": comment["textDisplay"],
+            "like_count": comment["likeCount"],
+            "published_at": comment["publishedAt"],
+            "language": comment.get("language", "unknown")
+        })
+    return comments
