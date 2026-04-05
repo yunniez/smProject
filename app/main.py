@@ -8,6 +8,7 @@ from app.insight import generate_insight
 from app.melon import get_melon_chart
 from app.crawler import crawl_youtube_comments, save_comments
 from app.database import SessionLocal, init_db, Video, Comment  # Comment 추가
+from app.insight import generate_insight, analyze_sentiment
 import asyncio
 import sys
 
@@ -84,26 +85,55 @@ def get_comments(video_id: str):
         db.close()
 
 @app.post("/pipeline/run")
-def run_pipeline(artist: str, max_videos: int = 5, max_comments: int = 100):
-    db = SessionLocal()
-    try:
-        videos = search_videos(artist, max_videos)
-        for v in videos:
-            existing = db.query(Video).filter(Video.video_id == v["video_id"]).first()
-            if not existing:
-                db.add(Video(**v))
-        db.commit()
+def run_pipeline(artist: str, max_videos: int = 5, max_comments: int = 100, db: Session = Depends(get_db)):
+    # 1. 영상 수집 및 DB 저장
+    videos = search_videos(artist, max_videos)
+    for v in videos:
+        existing = db.query(Video).filter(Video.video_id == v["video_id"]).first()
+        if not existing:
+            db.add(Video(**v))
+    db.commit()
 
-        total_comments = 0
-        for video in videos:
-            comments = crawl_youtube_comments(video["video_id"], max_comments)
-            saved = save_comments(video["video_id"], comments)
-            total_comments += saved
+    # 2. 각 영상 댓글 크롤링 + 감성 분석
+    results = []
+    for video in videos:
+        video_id = video["video_id"]
 
-        return {
-            "artist": artist,
-            "videos_collected": len(videos),
-            "total_comments_saved": total_comments
-        }
-    finally:
-        db.close()
+        # 댓글 크롤링
+        comments = crawl_youtube_comments(video_id, max_comments)
+        save_comments(video_id, comments)
+
+        # 감성 분석
+        saved_comments = db.query(Comment).filter_by(video_id=video_id).all()
+        if saved_comments:
+            sentiment = analyze_sentiment(video_id, saved_comments)
+        else:
+            sentiment = None
+
+        results.append({
+            "video_id": video_id,
+            "title": video["title"],
+            "comments_saved": len(comments),
+            "sentiment": sentiment
+        })
+
+    return {
+        "artist": artist,
+        "videos_collected": len(videos),
+        "results": results
+    }
+
+
+@app.get("/comments/analyze/{video_id}")
+def analyze_comments(video_id: str, db: Session = Depends(get_db)):
+    """저장된 댓글 감성 분석"""
+    comments = db.query(Comment).filter_by(video_id=video_id).all()
+    if not comments:
+        return {"error": "댓글 데이터가 없습니다. /pipeline/run 먼저 실행해주세요."}
+    
+    result = analyze_sentiment(video_id, comments)
+    return {
+        "video_id": video_id,
+        "total_comments": len(comments),
+        "sentiment_analysis": result
+    }

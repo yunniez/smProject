@@ -32,6 +32,7 @@ class Comment(Base):
     text = Column(Text)
     likes = Column(Integer, default=0)
     published_at = Column(String)
+    sentiment = Column(String, nullable=True)  # positive / negative / neutral
     video = relationship("Video", back_populates="comments")
 
 def init_db():
