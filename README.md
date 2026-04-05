@@ -1,14 +1,20 @@
 # 🎯 FandomLens
 
-> K-POP 아티스트 유튜브 데이터를 자동 수집·적재하고, AI가 팬덤 트렌드 인사이트를 생성하는 데이터 파이프라인 백엔드
+> K-POP 아티스트 팬덤 데이터를 자동 수집·분석하고, AI가 인사이트를 생성하는 엔드투엔드 데이터 파이프라인
+
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.135-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791?style=flat-square&logo=postgresql&logoColor=white)](https://postgresql.org)
+[![AWS EC2](https://img.shields.io/badge/AWS-EC2-FF9900?style=flat-square&logo=amazonaws&logoColor=white)](https://aws.amazon.com)
+[![Claude API](https://img.shields.io/badge/Claude-API-8B5CF6?style=flat-square)](https://anthropic.com)
 
 ---
 
 ## 📌 프로젝트 개요
 
-FandomLens는 YouTube Data API를 통해 K-POP 아티스트 관련 영상 데이터를 **자동 수집 → PostgreSQL 적재 → Claude AI 분석**까지 이어지는 엔드투엔드 데이터 파이프라인
+FandomLens는 SM Entertainment 아티스트를 중심으로 YouTube 영상 데이터와 팬 댓글을 **자동 수집 → PostgreSQL 적재 → Claude AI 분석**까지 이어지는 데이터 파이프라인입니다.
 
-**자체 AI 서비스 백엔드 구축** 및 **글로벌 팬덤 데이터 활용** 전략에 직접 대응하는 구조로 설계
+엔터테인먼트 기업의 **자체 AI 엔진 학습용 데이터 수집 자동화** 니즈를 직접 구현한 프로젝트로, 글로벌 팬덤 트렌드 인사이트 도출을 목표로 합니다.
 
 ---
 
@@ -17,31 +23,69 @@ FandomLens는 YouTube Data API를 통해 K-POP 아티스트 관련 영상 데이
 | 분류 | 기술 |
 |------|------|
 | **Language** | Python 3.12 |
-| **Backend Framework** | FastAPI |
+| **Backend** | FastAPI 0.135 |
 | **Database** | PostgreSQL + SQLAlchemy ORM |
-| **Data Collection** | YouTube Data API v3 |
-| **AI Integration** | Anthropic Claude API |
-| **API Documentation** | Swagger UI (FastAPI 내장) |
-| **Version Control** | Git / GitHub |
+| **크롤링** | Playwright (동적 렌더링 대응) + BeautifulSoup |
+| **데이터 수집** | YouTube Data API v3 |
+| **AI 분석** | Anthropic Claude API |
+| **인프라** | AWS EC2 (Ubuntu 22.04) |
+| **배포 자동화** | GitHub Actions (CI/CD) |
+| **문서화** | Swagger UI (FastAPI 내장) |
 
 ---
 
 ## ✨ 주요 기능
 
-### 1. 유튜브 영상 데이터 자동 수집
-- YouTube Data API v3를 활용한 키워드 기반 영상 검색
+### 1. YouTube 영상 데이터 자동 수집
+- YouTube Data API v3 키워드 기반 영상 검색
 - 영상 제목, 채널명, 게시일, 설명 등 메타데이터 수집
-- 중복 데이터 방지 로직 적용 (video_id 기준 upsert)
+- `video_id` 기준 upsert로 중복 데이터 방지
 
-### 2. PostgreSQL 자동 적재
-- SQLAlchemy ORM 기반 데이터 모델링
-- 서버 시작 시 테이블 자동 생성 (`create_all`)
-- RESTful API 엔드포인트를 통한 수집 트리거
+### 2. Playwright 기반 댓글 크롤링
+- YouTube 동적 렌더링 대응 (JavaScript 렌더링 후 댓글 파싱)
+- 무한 스크롤 자동 처리로 대량 댓글 수집
+- 작성자, 댓글 내용, 좋아요 수, 작성일 수집
+- 불필요한 리소스 차단으로 크롤링 속도 최적화
 
-### 3. Claude AI 팬덤 인사이트 생성
-- 수집된 영상 데이터를 Claude API에 전달
+### 3. 엔드투엔드 파이프라인 자동화
+- `/pipeline/run` 엔드포인트 한 번 호출로 영상 수집 → 댓글 크롤링 → DB 저장 일괄 처리
+- 아티스트명 파라미터로 다양한 아티스트 데이터 수집 가능
+
+### 4. Claude AI 팬덤 인사이트 생성
+- 수집된 데이터를 Claude API에 전달
 - 최근 활동 트렌드, 채널 분포, 글로벌 팬덤 시사점 자동 분석
 - 마크다운 형식의 구조화된 리포트 반환
+
+### 5. 멜론 차트 수집
+- BeautifulSoup 기반 실시간 멜론 차트 크롤링
+- K-POP 음원 트렌드 데이터 수집
+
+---
+
+## 🏗️ 아키텍처
+
+```
+[Client / Swagger UI]
+        │
+        ▼
+[FastAPI Server - AWS EC2]
+        │
+   ┌────┴────┐
+   │         │
+   ▼         ▼
+[YouTube   [Playwright]
+ Data API]  크롤러
+   │         │
+   └────┬────┘
+        │
+        ▼
+[PostgreSQL DB]
+   ├── videos
+   └── comments
+        │
+        ▼
+[Claude API → 인사이트 리포트]
+```
 
 ---
 
@@ -49,13 +93,21 @@ FandomLens는 YouTube Data API를 통해 K-POP 아티스트 관련 영상 데이
 
 ```
 smProject/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml       # GitHub Actions CI/CD
 ├── app/
-│   ├── main.py          # FastAPI 앱 진입점, 엔드포인트 정의
-│   ├── youtube.py       # YouTube Data API 연동
-│   ├── database.py      # SQLAlchemy 모델 및 DB 연결
-│   └── insight.py       # Claude API 인사이트 생성
-├── .env                 # 환경변수 (API 키, DB URL)
+│   ├── main.py              # FastAPI 앱 진입점
+│   ├── youtube.py           # YouTube Data API 연동
+│   ├── crawler.py           # Playwright 댓글 크롤러
+│   ├── database.py          # SQLAlchemy 모델 및 DB 연결
+│   ├── insight.py           # Claude API 인사이트 생성
+│   ├── melon.py             # 멜론 차트 크롤러
+│   └── templates/
+│       └── index.html       # 대시보드 UI
+├── .env                     # 환경변수 (API 키, DB URL)
 ├── .gitignore
+├── requirements.txt
 └── README.md
 ```
 
@@ -65,53 +117,82 @@ smProject/
 
 | Method | Endpoint | 설명 |
 |--------|----------|------|
-| `GET` | `/` | 헬스체크 |
-| `GET` | `/videos` | YouTube 영상 검색 (DB 미저장) |
-| `POST` | `/videos/collect` | 영상 데이터 수집 후 DB 적재 |
-| `GET` | `/videos/insight` | DB 데이터 기반 AI 인사이트 생성 |
+| `GET` | `/` | 대시보드 UI |
+| `GET` | `/videos` | YouTube 영상 검색 |
+| `POST` | `/videos/collect` | 영상 수집 후 DB 저장 |
+| `GET` | `/videos/insight` | AI 팬덤 인사이트 생성 |
+| `POST` | `/comments/collect` | 댓글 크롤링 후 DB 저장 |
+| `GET` | `/comments/{video_id}` | 저장된 댓글 조회 |
+| `POST` | `/pipeline/run` | 영상 수집 + 댓글 크롤링 일괄 실행 |
+| `GET` | `/chart/melon` | 멜론 차트 수집 |
 
-Swagger UI: `http://localhost:8000/docs`
+Swagger UI: `http://서버IP:8000/docs`
 
 ---
 
 ## ⚙️ 실행 방법
 
-### 1. 환경 설정
+### 로컬 환경
+
 ```bash
 git clone https://github.com/yunniez/smProject.git
 cd smProject
-python -m venv venv
-venv\Scripts\activate  # Windows
+
+py -3.12 -m venv venv
+venv\Scripts\activate
+
 pip install -r requirements.txt
+playwright install chromium
 ```
 
-### 2. 환경변수 설정
 `.env` 파일 생성:
-```
+
+```env
 YOUTUBE_API_KEY=your_youtube_api_key
-DATABASE_URL=postgresql://postgres:password@localhost:5432/postgres
+DATABASE_URL=postgresql+psycopg2://postgres:password@localhost:5432/postgres
 ANTHROPIC_API_KEY=your_anthropic_api_key
 ```
 
-### 3. 서버 실행
+서버 실행:
+
 ```bash
 uvicorn app.main:app --reload
+```
+
+### AWS EC2 배포
+
+`master` 브랜치에 push하면 GitHub Actions가 자동으로 EC2에 배포합니다.
+
+```bash
+git push origin master
 ```
 
 ---
 
 ## 💡 설계 포인트
 
-- **데이터 파이프라인 구조**: 수집 → 적재 → AI 분석의 명확한 레이어 분리
-- **중복 방지**: video_id unique 제약으로 멱등성 보장
-- **확장성 고려**: 아티스트 쿼리 파라미터화로 다양한 아티스트 데이터 수집 가능
-- **AI 연동 백엔드**: Claude API를 서비스 로직에 통합하는 구조 구현
+- **동적 크롤링 대응**: YouTube 댓글은 JavaScript로 렌더링되므로 Playwright 적용. 정적 파싱(requests + BeautifulSoup)으로는 수집 불가한 데이터를 처리
+- **파이프라인 레이어 분리**: 수집 → 적재 → AI 분석의 명확한 책임 분리
+- **중복 방지**: `video_id` unique 제약 및 댓글 텍스트 기준 중복 체크로 멱등성 보장
+- **자동 배포**: GitHub Actions 기반 CI/CD로 push 즉시 EC2 반영
+- **확장성**: 아티스트 파라미터화로 SM 전체 아티스트 데이터 수집 가능
 
 ---
 
 ## 🔮 개선 방향
 
-- APScheduler를 활용한 주기적 자동 수집 스케줄러 추가
-- 댓글 수집 및 감성 분석 기능 확장
-- 국가별 언어 분포 분석으로 글로벌 팬덤 지도 시각화
-- AWS EC2 + RDS 배포를 통한 운영 환경 구축
+- [ ] APScheduler 기반 주기적 자동 수집 스케줄러
+- [ ] 댓글 감성 분석 (긍정/부정/중립 분류)
+- [ ] 국가별 언어 분포 분석으로 글로벌 팬덤 지도 시각화
+- [ ] HTTPS 적용 (Let's Encrypt)
+- [ ] 대량 수집 시 asyncio 병렬 처리 최적화
+
+---
+
+## 📊 수집 데이터 규모
+
+| 대상 | 수집 항목 | 건수 |
+|------|----------|------|
+| YouTube 영상 | 제목, 채널, 게시일, 설명 | 회당 최대 50건 |
+| 댓글 | 작성자, 내용, 좋아요, 작성일 | 영상당 최대 100건 |
+| 멜론 차트 | 순위, 곡명, 아티스트 | 실시간 TOP 100 |
